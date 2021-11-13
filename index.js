@@ -8,6 +8,8 @@ const baseUrl = 'https://api.binance.com/api/v3/ticker/price';
 const SYMBOL = process.env.SYMBOL || 'SHIBBUSD';
 const PERCENT = process.env.PERCENT || 1;
 
+console.log('API-KEY', APIKEY.green);
+console.log('API-SECRET', APISECRET.green);
 const binance = new Binance().options({
   APIKEY,
   APISECRET,
