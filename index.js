@@ -40,6 +40,10 @@ const buy = () => {
         ((100 - parseFloat(PERCENTBUY)) * currPrice) /
         100
       ).toFixed(8);
+
+      console.log(currPrice, 'currPrice');
+      console.log(pricetoBuy, 'pricetoBuy');
+      console.log(PERCENTBUY, 'PERCENTBUY');
       const amount = curBalance / pricetoBuy;
       const amountRnd = Math.floor(amount);
 
@@ -74,6 +78,9 @@ const sell = () => {
         100
       ).toFixed(8);
       const amountRnd = Math.floor(curBalance);
+      console.log(currPrice, 'currPrice');
+      console.log(pricetoSell, 'pricetoSell');
+      console.log(PERCENTSELL, 'PERCENTSELL');
 
       await binance.sell(
         SYMBOL,
