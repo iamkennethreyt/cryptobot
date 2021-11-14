@@ -8,6 +8,7 @@ const baseUrl = 'https://api.binance.com/api/v3/ticker/price';
 const SYMBOL = process.env.SYMBOL || 'SHIBBUSD';
 const PERCENTBUY = process.env.PERCENTBUY || 1;
 const PERCENTSELL = process.env.PERCENTSELL || 1;
+const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 25;
 
 console.log('API-KEY', APIKEY.green);
 console.log('API-SECRET', APISECRET.green);
@@ -40,11 +41,15 @@ const buy = () => {
         ((100 - parseFloat(PERCENTBUY)) * currPrice) /
         100
       ).toFixed(8);
+      const capital = curBalance * (PERCENTCAPITAL / 100);
 
       console.log(currPrice, 'currPrice');
       console.log(pricetoBuy, 'pricetoBuy');
       console.log(PERCENTBUY, 'PERCENTBUY');
-      const amount = curBalance / pricetoBuy;
+      console.log(PERCENTCAPITAL, 'PERCENTCAPITAL');
+      console.log(capital, 'capital');
+
+      const amount = capital / pricetoBuy;
       const amountRnd = Math.floor(amount);
 
       await binance.buy(
