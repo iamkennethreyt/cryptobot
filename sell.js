@@ -89,7 +89,7 @@ const myfunc = async () => {
           }
         });
       } else {
-        console.log(border, 'THERE IS PENDING SAIL', border);
+        console.log(border, 'THERE IS PENDING ORDERS', border);
         return;
       }
     }

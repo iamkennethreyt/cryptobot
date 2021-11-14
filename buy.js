@@ -60,7 +60,10 @@ const buy = () => {
           if (err) {
             console.error(err.body.red);
           } else {
-            console.info(`Successfully added Buy \nPrice : ${res.price}`.green);
+            console.info(
+              `Successfully added Buy \nPrice : ${res.price}`.green,
+              border
+            );
           }
         }
       );
