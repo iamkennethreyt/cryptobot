@@ -10,8 +10,8 @@ const PERCENTBUY = process.env.PERCENTBUY || 1;
 const PERCENTSELL = process.env.PERCENTSELL || 1;
 const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 25;
 
-console.log('API-KEY', APIKEY.green);
-console.log('API-SECRET', APISECRET.green);
+console.log('API-KEY', APIKEY);
+console.log('API-SECRET', APISECRET);
 const binance = new Binance().options({
   APIKEY,
   APISECRET,
