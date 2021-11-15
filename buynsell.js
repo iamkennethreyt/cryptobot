@@ -35,7 +35,7 @@ const currentPrice = async () => {
 const fetch = async () => {
   const res = await axios.get(API, {
     params: {
-      symbol: 'SHIBBUSD',
+      symbol: SYMBOL,
       interval: '3m',
       limit: 10
     }
@@ -101,32 +101,36 @@ const sell = async () => {
     if (err) {
       console.log(err);
     } else {
-      const currPrice = await currentPrice();
-      const curBalance = bal.SHIB.available;
-      const pricetoSell = (
-        ((100 + parseFloat(aveHigh)) * currPrice) /
-        100
-      ).toFixed(8);
-      const amountRnd = Math.floor(curBalance);
-      console.log(currPrice, 'currPrice');
-      console.log(pricetoSell, 'pricetoSell');
-      console.log(aveHigh, 'aveHigh');
-
-      await binance.sell(
-        SYMBOL,
-        amountRnd,
-        pricetoSell,
-        { type: 'LIMIT' },
-        (err, res) => {
-          if (err) {
-            console.error(err.body.red);
-          } else {
-            console.info(
-              `Successfully added Sell \nPrice : ${res.price}`.green
-            );
-          }
+      await binance.trades(SYMBOL, (err, prevTransact) => {
+        if (!err) {
+          const prevBuy = prevTransact.slice(-1)[0].price;
+          const curBalance = bal.SHIB.available;
+          const pricetoSell = (
+            ((100 + parseFloat(aveHigh)) * prevBuy) /
+            100
+          ).toFixed(8);
+          const amountRnd = Math.floor(curBalance);
+          console.log(prevBuy, 'prevBuy');
+          console.log(pricetoSell, 'pricetoSell');
+          console.log(aveHigh, 'aveHigh');
+          binance.sell(
+            SYMBOL,
+            amountRnd,
+            pricetoSell,
+            { type: 'LIMIT' },
+            (err, res) => {
+              if (err) {
+                console.error(err.body.red);
+              } else {
+                console.info(
+                  `Successfully added Sell \nPrice : ${res.price}`.green
+                );
+              }
+            }
+          );
         }
-      );
+      });
+
       return;
     }
     return;
