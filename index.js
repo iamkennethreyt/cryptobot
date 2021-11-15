@@ -71,43 +71,46 @@ const buy = () => {
   });
 };
 
-const sell = () => {
+const sell = async () => {
   binance.balance(async (err, bal) => {
     if (err) {
       console.log(err);
     } else {
-      const currPrice = await currentPrice();
-      const curBalance = bal.SHIB.available;
-      const pricetoSell = (
-        ((100 + parseFloat(PERCENTSELL)) * currPrice) /
-        100
-      ).toFixed(8);
-      const amountRnd = Math.floor(curBalance);
-      console.log(currPrice, 'currPrice');
-      console.log(pricetoSell, 'pricetoSell');
-      console.log(PERCENTSELL, 'PERCENTSELL');
-
-      await binance.sell(
-        SYMBOL,
-        amountRnd,
-        pricetoSell,
-        { type: 'LIMIT' },
-        (err, res) => {
-          if (err) {
-            console.error(err.body.red);
-          } else {
-            console.info(
-              `Successfully added Sell \nPrice : ${res.price}`.green
-            );
-          }
+      await binance.trades(SYMBOL, (err, prevTransact) => {
+        if (!err) {
+          const prevBuy = prevTransact.slice(-1)[0].price;
+          const curBalance = bal.SHIB.available;
+          const pricetoSell = (
+            ((100 + parseFloat(PERCENTSELL)) * prevBuy) /
+            100
+          ).toFixed(8);
+          const amountRnd = Math.floor(curBalance);
+          console.log(prevBuy, 'prevBuy');
+          console.log(pricetoSell, 'pricetoSell');
+          console.log(PERCENTSELL, 'PERCENTSELL');
+          binance.sell(
+            SYMBOL,
+            amountRnd,
+            pricetoSell,
+            { type: 'LIMIT' },
+            (err, res) => {
+              if (err) {
+                console.error(err.body.red);
+              } else {
+                console.info(
+                  `Successfully added Sell \nPrice : ${res.price}`.green
+                );
+              }
+            }
+          );
         }
-      );
+      });
+
       return;
     }
     return;
   });
 };
-
 const myfunc = async () => {
   await binance.useServerTime();
   await binance.openOrders(false, (err, openOrders) => {
