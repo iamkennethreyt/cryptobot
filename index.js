@@ -218,5 +218,4 @@ const myfunc = async () => {
   });
 };
 
-// myfunc();
-buy();
+myfunc();
