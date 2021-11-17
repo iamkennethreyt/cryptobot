@@ -13,6 +13,7 @@ const LIMIT = process.env.LIMIT || 10; //LIMIT WHEN FETCH THE AGGREGATE TRADES
 const PERCENTBUY = process.env.PERCENTBUY; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PERCENTSELL = process.env.PERCENTSELL; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PRICELIMIT = process.env.PRICELIMIT; //END POINT OF THE PRICE SET
+const SPREAD = process.env.SPREAD || 1;
 const CRYPTO = process.env.CRYPTO || 'SHIB';
 const CRYPTOTRANSACT = process.env.CRYPTO || 'BUSD';
 
@@ -76,13 +77,15 @@ const transactBuy = async () => {
   PERCENTBUY && console.log('PERCENT BUY PARAM EXIST : ', PERCENTBUY);
   const aveLow = PERCENTBUY || (await (100 - (100 * low) / open).toFixed(2));
 
+  const lowExec = SPREAD * aveLow;
+
   //check the balance
   binance.balance(async (err, bal) => {
     try {
       const currPrice = await fetchCurPrice();
       const curBalance = bal[CRYPTOTRANSACT].available;
       const pricetoBuy = (
-        ((100 - parseFloat(aveLow)) * currPrice) /
+        ((100 - parseFloat(lowExec)) * currPrice) /
         100
       ).toFixed(8);
       const capital = curBalance * (PERCENTCAPITAL / 100);
@@ -90,6 +93,7 @@ const transactBuy = async () => {
       console.log('currPrice', currPrice);
       console.log('pricetoBuy', pricetoBuy);
       console.log('aveLow', aveLow);
+      console.log('lowExec', lowExec);
       console.log('PERCENTCAPITAL', PERCENTCAPITAL);
       console.log('capital', capital);
 
@@ -122,6 +126,7 @@ const sell = async () => {
   const high = await avg(arr, 2);
   PERCENTSELL && console.log('PERCENT SELL PARAM EXIST : ', PERCENTSELL);
   const aveHigh = PERCENTSELL || (await ((high / open) * 100 - 100).toFixed(2));
+  const highExec = SPREAD * aveHigh;
   binance.balance(async (err, bal) => {
     try {
       await binance.trades(SYMBOL, (err, prevTransact) => {
@@ -129,13 +134,14 @@ const sell = async () => {
           const prevBuy = prevTransact.slice(-1)[0].price;
           const curBalance = bal[CRYPTO].available;
           const pricetoSell = (
-            ((100 + parseFloat(aveHigh)) * prevBuy) /
+            ((100 + parseFloat(highExec)) * prevBuy) /
             100
           ).toFixed(8);
           const amountRnd = Math.floor(curBalance);
           console.log('prevBuy', prevBuy);
           console.log('pricetoSell', pricetoSell);
           console.log('aveHigh', aveHigh);
+          console.log('highExec', highExec);
           binance.sell(
             SYMBOL,
             amountRnd,
