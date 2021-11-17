@@ -1,17 +1,18 @@
 const Binance = require('node-binance-api');
 const axios = require('axios');
 const colors = require('colors');
-const APIKEY = process.env.APIKEY;
-const APISECRET = process.env.APISECRET;
 const baseUrl = 'https://api.binance.com/api/v3/ticker/price';
+const API = 'https://api3.binance.com/api/v3/klines?';
 
+const APISECRET = process.env.APISECRET;
+const APIKEY = process.env.APIKEY;
 const SYMBOL = process.env.SYMBOL || 'SHIBBUSD';
-const PERCENTBUY = process.env.PERCENTBUY || 1;
-const PERCENTSELL = process.env.PERCENTSELL || 1;
-const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 25;
+const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 100;
+const INTERVAL = process.env.INTERVAL || '1m';
+const LIMIT = process.env.LIMIT || 10;
+const PERCENTBUY = process.env.PERCENTBUY;
+const PERCENTSELL = process.env.PERCENTSELL;
 
-console.log('API-KEY', APIKEY);
-console.log('API-SECRET', APISECRET);
 const binance = new Binance().options({
   APIKEY,
   APISECRET,
@@ -22,6 +23,9 @@ const binance = new Binance().options({
 const border =
   '\n=============================================================\n';
 
+const avg = async (data, x) =>
+  (await data.reduce((r, c) => r + parseFloat(c[x]), 0)) / data.length;
+
 const currentPrice = async () => {
   const res = await axios.get(`${baseUrl}`, {
     params: { symbol: SYMBOL }
@@ -30,7 +34,26 @@ const currentPrice = async () => {
   return res.data.price;
 };
 
-const buy = () => {
+const fetch = async () => {
+  const res = await axios.get(API, {
+    params: {
+      symbol: SYMBOL,
+      interval: INTERVAL,
+      limit: LIMIT
+    }
+  });
+  return res.data;
+};
+
+const buy = async () => {
+  const data = await fetch();
+  const open = await avg(data, 1);
+  const low = await avg(data, 3);
+  PERCENTBUY && console.log('PERCENT BUY PARAM EXIST : ', PERCENTBUY);
+
+  const aveLow = PERCENTBUY || (await (100 - (100 * low) / open).toFixed(2));
+  console.log(aveLow);
+
   binance.balance(async (err, bal) => {
     if (err) {
       console.log(err);
@@ -38,14 +61,14 @@ const buy = () => {
       const currPrice = await currentPrice();
       const curBalance = bal.BUSD.available;
       const pricetoBuy = (
-        ((100 - parseFloat(PERCENTBUY)) * currPrice) /
+        ((100 - parseFloat(aveLow)) * currPrice) /
         100
       ).toFixed(8);
       const capital = curBalance * (PERCENTCAPITAL / 100);
 
       console.log(currPrice, 'currPrice');
       console.log(pricetoBuy, 'pricetoBuy');
-      console.log(PERCENTBUY, 'PERCENTBUY');
+      console.log(aveLow, 'aveLow');
       console.log(PERCENTCAPITAL, 'PERCENTCAPITAL');
       console.log(capital, 'capital');
 
@@ -72,6 +95,11 @@ const buy = () => {
 };
 
 const sell = async () => {
+  const data = await fetch();
+  const open = await avg(data, 1);
+  const high = await avg(data, 2);
+  PERCENTSELL && console.log('PERCENT SELL PARAM EXIST : ', PERCENTSELL);
+  const aveHigh = PERCENTSELL || (await ((high / open) * 100 - 100).toFixed(2));
   binance.balance(async (err, bal) => {
     if (err) {
       console.log(err);
@@ -81,13 +109,13 @@ const sell = async () => {
           const prevBuy = prevTransact.slice(-1)[0].price;
           const curBalance = bal.SHIB.available;
           const pricetoSell = (
-            ((100 + parseFloat(PERCENTSELL)) * prevBuy) /
+            ((100 + parseFloat(aveHigh)) * prevBuy) /
             100
           ).toFixed(8);
           const amountRnd = Math.floor(curBalance);
           console.log(prevBuy, 'prevBuy');
           console.log(pricetoSell, 'pricetoSell');
-          console.log(PERCENTSELL, 'PERCENTSELL');
+          console.log(aveHigh, 'aveHigh');
           binance.sell(
             SYMBOL,
             amountRnd,
@@ -111,6 +139,7 @@ const sell = async () => {
     return;
   });
 };
+
 const myfunc = async () => {
   await binance.useServerTime();
   await binance.openOrders(false, (err, openOrders) => {
