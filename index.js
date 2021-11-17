@@ -68,48 +68,45 @@ const buy = async () => {
   PERCENTBUY && console.log('PERCENT BUY PARAM EXIST : ', PERCENTBUY);
 
   const aveLow = PERCENTBUY || (await (100 - (100 * low) / open).toFixed(2));
-  console.log(aveLow);
 
-  console.log(prevHighPer);
+  binance.balance(async (err, bal) => {
+    if (err) {
+      console.log(err);
+    } else {
+      const currPrice = await currentPrice();
+      const curBalance = bal.BUSD.available;
+      const pricetoBuy = (
+        ((100 - parseFloat(aveLow)) * currPrice) /
+        100
+      ).toFixed(8);
+      const capital = curBalance * (PERCENTCAPITAL / 100);
 
-  // binance.balance(async (err, bal) => {
-  //   if (err) {
-  //     console.log(err);
-  //   } else {
-  //     const currPrice = await currentPrice();
-  //     const curBalance = bal.BUSD.available;
-  //     const pricetoBuy = (
-  //       ((100 - parseFloat(aveLow)) * currPrice) /
-  //       100
-  //     ).toFixed(8);
-  //     const capital = curBalance * (PERCENTCAPITAL / 100);
+      console.log(currPrice, 'currPrice');
+      console.log(pricetoBuy, 'pricetoBuy');
+      console.log(aveLow, 'aveLow');
+      console.log(PERCENTCAPITAL, 'PERCENTCAPITAL');
+      console.log(capital, 'capital');
 
-  //     console.log(currPrice, 'currPrice');
-  //     console.log(pricetoBuy, 'pricetoBuy');
-  //     console.log(aveLow, 'aveLow');
-  //     console.log(PERCENTCAPITAL, 'PERCENTCAPITAL');
-  //     console.log(capital, 'capital');
+      const amount = capital / pricetoBuy;
+      const amountRnd = Math.floor(amount);
 
-  //     const amount = capital / pricetoBuy;
-  //     const amountRnd = Math.floor(amount);
-
-  //     await binance.buy(
-  //       SYMBOL,
-  //       amountRnd,
-  //       pricetoBuy,
-  //       { type: 'LIMIT' },
-  //       (err, res) => {
-  //         if (err) {
-  //           console.error(err.body.red);
-  //         } else {
-  //           console.info(`Successfully added Buy \nPrice : ${res.price}`.green);
-  //         }
-  //       }
-  //     );
-  //     return;
-  //   }
-  //   return;
-  // });
+      await binance.buy(
+        SYMBOL,
+        amountRnd,
+        pricetoBuy,
+        { type: 'LIMIT' },
+        (err, res) => {
+          if (err) {
+            console.error(err.body.red);
+          } else {
+            console.info(`Successfully added Buy \nPrice : ${res.price}`.green);
+          }
+        }
+      );
+      return;
+    }
+    return;
+  });
 };
 
 const sell = async () => {
