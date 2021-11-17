@@ -71,7 +71,7 @@ const buy = async () => {
 
   binance.balance(async (err, bal) => {
     if (err) {
-      console.log(err);
+      throw err;
     } else {
       const currPrice = await currentPrice();
       const curBalance = bal.BUSD.available;
@@ -105,7 +105,6 @@ const buy = async () => {
       );
       return;
     }
-    return;
   });
 };
 
@@ -117,7 +116,7 @@ const sell = async () => {
   const aveHigh = PERCENTSELL || (await ((high / open) * 100 - 100).toFixed(2));
   binance.balance(async (err, bal) => {
     if (err) {
-      console.log(err);
+      throw err;
     } else {
       await binance.trades(SYMBOL, (err, prevTransact) => {
         if (!err) {
@@ -151,7 +150,6 @@ const sell = async () => {
 
       return;
     }
-    return;
   });
 };
 
@@ -172,15 +170,14 @@ const myfunc = async () => {
   await binance.useServerTime();
   await binance.openOrders(false, (err, openOrders) => {
     if (err) {
-      console.error(err);
+      throw err;
     } else {
       console.error(border, openOrders, border);
       if (openOrders.length === 0) {
         console.log(border, 'BUY/SELL', border);
         binance.trades(SYMBOL, (err, res) => {
           if (err) {
-            console.log(err);
-            return;
+            throw err;
           } else {
             if (res.slice(-1)[0].isBuyer) {
               sell();
@@ -203,8 +200,7 @@ const myfunc = async () => {
           console.log(border, 'CANCEL ORDER', border);
           binance.cancelAll(SYMBOL, (err, res) => {
             if (err) {
-              console.log(err);
-              return;
+              throw err;
             } else {
               console.info('Successfully cancel trade'.green);
               console.info(`Previous trade [${res[0].side}]`.blue);
