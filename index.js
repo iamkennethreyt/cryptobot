@@ -2,18 +2,19 @@ const Binance = require('node-binance-api');
 const axios = require('axios');
 const colors = require('colors');
 const baseUrl = 'https://api.binance.com/api/v3/ticker/price';
-const API = 'https://api3.binance.com/api/v3/klines?';
+const kLinesAPI = 'https://api3.binance.com/api/v3/klines?';
 
-const APISECRET = process.env.APISECRET;
-const APIKEY = process.env.APIKEY;
-const SYMBOL = process.env.SYMBOL || 'SHIBBUSD';
-const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 100;
-const INTERVAL = process.env.INTERVAL || '1m';
-const LIMIT = process.env.LIMIT || 10;
-const PERCENTBUY = process.env.PERCENTBUY;
-const PERCENTSELL = process.env.PERCENTSELL;
-const PRICELIMIT = process.env.PRICELIMIT;
+const APISECRET = process.env.APISECRET; //API SECRET
+const APIKEY = process.env.APIKEY; //API KEY
+const SYMBOL = process.env.SYMBOL || 'SHIBBUSD'; //SYMBOL
+const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 100; //PERCENT CAPITAL
+const INTERVAL = process.env.INTERVAL || '1m'; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
+const LIMIT = process.env.LIMIT || 10; //LIMIT WHEN FETCH THE AGGREGATE TRADES
+const PERCENTBUY = process.env.PERCENTBUY; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
+const PERCENTSELL = process.env.PERCENTSELL; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
+const PRICELIMIT = process.env.PRICELIMIT; //END POINT OF THE PRICE SET
 const CRYPTO = process.env.CRYPTO || 'SHIB';
+const CRYPTOTRANSACT = process.env.CRYPTO || 'BUSD';
 
 const binance = new Binance().options({
   APIKEY,
@@ -25,10 +26,12 @@ const binance = new Binance().options({
 const border =
   '\n=============================================================\n';
 
-const avg = async (data, x) =>
-  (await data.reduce((r, c) => r + parseFloat(c[x]), 0)) / data.length;
+//calculate the average of an array and properties
+const avg = async (arr, prop) =>
+  (await arr.reduce((r, c) => r + parseFloat(c[prop]), 0)) / arr.length;
 
-const currentPrice = async () => {
+//fetch current price
+const fetchCurPrice = async () => {
   const res = await axios.get(`${baseUrl}`, {
     params: { symbol: SYMBOL }
   });
@@ -36,8 +39,9 @@ const currentPrice = async () => {
   return res.data.price;
 };
 
-const fetch = async () => {
-  const res = await axios.get(API, {
+//fetch the aggregate trades
+const fetchAggTrades = async () => {
+  const res = await axios.get(kLinesAPI, {
     params: {
       symbol: SYMBOL,
       interval: INTERVAL,
@@ -47,45 +51,47 @@ const fetch = async () => {
   return res.data;
 };
 
-const buy = async () => {
-  const currPrice = await currentPrice();
+const transactBuy = async () => {
+  const currPrice = await fetchCurPrice();
+
+  //check if the current price is not exceded to the set price limit
   if (currPrice >= PRICELIMIT) {
     console.log('UNEABLE TO TRANSACT, PRICELIMIT EXCEDED');
     return;
   }
 
   const prevHighPer = await previousHighPercent();
-  const data = await fetch();
-  const open = await avg(data, 1);
-  const low = await avg(data, 3);
-  const high = await avg(data, 2);
+  const arr = await fetchAggTrades();
+  const open = await avg(arr, 1);
+  const low = await avg(arr, 3);
+  const high = await avg(arr, 2);
   const aveHigh = PERCENTSELL || (await ((high / open) * 100 - 100));
 
   if (prevHighPer > aveHigh) {
     console.log('AVERAGE HIGH PERCENT IS GREATER THAT PREVIOUS HIGH PERCENT');
     return;
   }
-  PERCENTBUY && console.log('PERCENT BUY PARAM EXIST : ', PERCENTBUY);
 
+  //if PERCENTBBUY is not set, the average low percentage will be replace
+  PERCENTBUY && console.log('PERCENT BUY PARAM EXIST : ', PERCENTBUY);
   const aveLow = PERCENTBUY || (await (100 - (100 * low) / open).toFixed(2));
 
+  //check the balance
   binance.balance(async (err, bal) => {
-    if (err) {
-      throw err;
-    } else {
-      const currPrice = await currentPrice();
-      const curBalance = bal.BUSD.available;
+    try {
+      const currPrice = await fetchCurPrice();
+      const curBalance = bal[CRYPTOTRANSACT].available;
       const pricetoBuy = (
         ((100 - parseFloat(aveLow)) * currPrice) /
         100
       ).toFixed(8);
       const capital = curBalance * (PERCENTCAPITAL / 100);
 
-      console.log(currPrice, 'currPrice');
-      console.log(pricetoBuy, 'pricetoBuy');
-      console.log(aveLow, 'aveLow');
-      console.log(PERCENTCAPITAL, 'PERCENTCAPITAL');
-      console.log(capital, 'capital');
+      console.log('currPrice', currPrice);
+      console.log('pricetoBuy', pricetoBuy);
+      console.log('aveLow', aveLow);
+      console.log('PERCENTCAPITAL', PERCENTCAPITAL);
+      console.log('capital', capital);
 
       const amount = capital / pricetoBuy;
       const amountRnd = Math.floor(amount);
@@ -96,28 +102,28 @@ const buy = async () => {
         pricetoBuy,
         { type: 'LIMIT' },
         (err, res) => {
-          if (err) {
-            console.error(err.body.red);
-          } else {
-            console.info(`Successfully added Buy \nPrice : ${res.price}`.green);
+          try {
+            console.info(`Successfully added Buy \nPrice : ${res.price}`);
+          } catch (error) {
+            throw err;
           }
         }
       );
       return;
+    } catch (error) {
+      throw err;
     }
   });
 };
 
 const sell = async () => {
-  const data = await fetch();
-  const open = await avg(data, 1);
-  const high = await avg(data, 2);
+  const arr = await fetchAggTrades();
+  const open = await avg(arr, 1);
+  const high = await avg(arr, 2);
   PERCENTSELL && console.log('PERCENT SELL PARAM EXIST : ', PERCENTSELL);
   const aveHigh = PERCENTSELL || (await ((high / open) * 100 - 100).toFixed(2));
   binance.balance(async (err, bal) => {
-    if (err) {
-      throw err;
-    } else {
+    try {
       await binance.trades(SYMBOL, (err, prevTransact) => {
         if (!err) {
           const prevBuy = prevTransact.slice(-1)[0].price;
@@ -127,21 +133,19 @@ const sell = async () => {
             100
           ).toFixed(8);
           const amountRnd = Math.floor(curBalance);
-          console.log(prevBuy, 'prevBuy');
-          console.log(pricetoSell, 'pricetoSell');
-          console.log(aveHigh, 'aveHigh');
+          console.log('prevBuy', prevBuy);
+          console.log('pricetoSell', pricetoSell);
+          console.log('aveHigh', aveHigh);
           binance.sell(
             SYMBOL,
             amountRnd,
             pricetoSell,
             { type: 'LIMIT' },
             (err, res) => {
-              if (err) {
-                console.error(err.body.red);
-              } else {
-                console.info(
-                  `Successfully added Sell \nPrice : ${res.price}`.green
-                );
+              try {
+                console.info(`Successfully added Sell \nPrice : ${res.price}`);
+              } catch (error) {
+                throw err;
               }
             }
           );
@@ -149,14 +153,17 @@ const sell = async () => {
       });
 
       return;
+    } catch (error) {
+      throw err;
     }
   });
 };
 
+//fetch the previous percent of high trades
 const previousHighPercent = async () => {
-  const res = await axios.get(API, {
+  const res = await axios.get(kLinesAPI, {
     params: {
-      symbol: 'SHIBBUSD',
+      symbol: SYMBOL,
       interval: '1m',
       limit: 1
     }
@@ -166,26 +173,26 @@ const previousHighPercent = async () => {
   return output;
 };
 
-const myfunc = async () => {
+//execute the function
+const transact = async () => {
   await binance.useServerTime();
+
+  //check the open orders first
   await binance.openOrders(false, (err, openOrders) => {
-    if (err) {
-      throw err;
-    } else {
-      console.error(border, openOrders, border);
+    try {
       if (openOrders.length === 0) {
         console.log(border, 'BUY/SELL', border);
         binance.trades(SYMBOL, (err, res) => {
-          if (err) {
-            throw err;
-          } else {
+          try {
             if (res.slice(-1)[0].isBuyer) {
               sell();
               return;
             } else {
-              buy();
+              transactBuy();
               return;
             }
+          } catch (error) {
+            throw err;
           }
         });
       } else {
@@ -199,19 +206,21 @@ const myfunc = async () => {
         } else {
           console.log(border, 'CANCEL ORDER', border);
           binance.cancelAll(SYMBOL, (err, res) => {
-            if (err) {
-              throw err;
-            } else {
-              console.info('Successfully cancel trade'.green);
+            try {
+              console.info('Successfully cancel trade');
               console.info(`Previous trade [${res[0].side}]`.blue);
-              buy();
+              transactBuy();
+            } catch (error) {
+              throw err;
             }
           });
           console.log(border, 'BUY NEW', border);
         }
       }
+    } catch (error) {
+      throw err;
     }
   });
 };
 
-myfunc();
+transact();
