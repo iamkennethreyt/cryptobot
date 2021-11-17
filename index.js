@@ -12,6 +12,7 @@ const INTERVAL = process.env.INTERVAL || '1m';
 const LIMIT = process.env.LIMIT || 10;
 const PERCENTBUY = process.env.PERCENTBUY;
 const PERCENTSELL = process.env.PERCENTSELL;
+const PRICELIMIT = process.env.PRICELIMIT;
 
 const binance = new Binance().options({
   APIKEY,
@@ -95,6 +96,11 @@ const buy = async () => {
 };
 
 const sell = async () => {
+  const currPrice = await currentPrice();
+  if (currPrice >= PRICELIMIT) {
+    console.log('UNEABLE TO TRANSACT, PRICELIMIT EXCEDED');
+    return;
+  }
   const data = await fetch();
   const open = await avg(data, 1);
   const high = await avg(data, 2);
