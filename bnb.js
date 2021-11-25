@@ -145,7 +145,7 @@ const sell = async () => {
           const sell = (((100 + parseFloat(highExec)) * prevBuy) / 100).toFixed(
             1
           );
-          const quantity = parseFloat(curBalance).toFixed(3);
+          const quantity = parseFloat(curBalance).toFixed(3) - 0.001;
           console.log('Previous Transaction :', prevBuy);
           console.log('Price to Sell :', sell);
           console.log(
@@ -177,20 +177,6 @@ const sell = async () => {
       throw err;
     }
   });
-};
-
-//fetch the previous percent of high trades
-const previousHighPercent = async () => {
-  const res = await axios.get(kLinesAPI, {
-    params: {
-      symbol: SYMBOL,
-      interval: INTERVAL,
-      limit: 1
-    }
-  });
-  const data = res.data[0];
-  const output = (data[2] / data[1]) * 100 - 100;
-  return output;
 };
 
 //execute the function
