@@ -100,10 +100,10 @@ const transactBuy = async () => {
       console.log('quantity', quantity);
       console.log('price', price);
 
-      if (price > currPrice) {
-        console.log('PRICE TO BUY IS GREATER THAN CURRENT PRICE');
-        return;
-      }
+      // if (price > currPrice) {
+      //   console.log('PRICE TO BUY IS GREATER THAN CURRENT PRICE');
+      //   return;
+      // }
 
       await binance.buy(
         SYMBOL,
