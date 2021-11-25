@@ -64,12 +64,8 @@ const transactBuy = async () => {
     return;
   }
 
-  const prevHighPer = await previousHighPercent();
   const arr = await fetchAggTrades();
-  const open = await avg(arr, 1);
   const low = parseFloat(await avg(arr, 3));
-  const high = await avg(arr, 2);
-  const aveHigh = PERCENTSELL || (await ((high / open) * 100 - 100));
 
   // console.log('arr', arr);
   // console.log('low', open);
@@ -81,9 +77,6 @@ const transactBuy = async () => {
 
   //if PERCENTBBUY is not set, the average low percentage will be replace
   PERCENTBUY && console.log('PERCENT BUY PARAM EXIST : ', PERCENTBUY);
-  const aveLow = PERCENTBUY || (await (100 - (100 * low) / open).toFixed(2));
-
-  const lowExec = SPREAD * aveLow;
 
   //check the balance
   binance.balance(async (err, bal) => {
@@ -107,8 +100,13 @@ const transactBuy = async () => {
       console.log('quantity', quantity);
       console.log('price', price);
 
+      if (price > currPrice) {
+        console.log('PRICE TO BUY IS GREATER THAN CURRENT PRICE');
+        return;
+      }
+
       await binance.buy(
-        'BNBBUSD',
+        SYMBOL,
         quantity,
         price,
         { type: 'LIMIT' },
