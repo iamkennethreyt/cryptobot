@@ -12,6 +12,7 @@
   "dependencies": {
     "axios": "^0.24.0",
     "colors": "^1.4.0",
+    "moment": "^2.29.1",
     "node-binance-api": "^0.13.0"
   }
 }
