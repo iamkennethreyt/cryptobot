@@ -9,14 +9,14 @@ const APIKEY = process.env.APIKEY; //API KEY
 const SYMBOL = process.env.SYMBOL || 'SHIBBUSD'; //SYMBOL
 const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 100; //PERCENT CAPITAL
 const INTERVAL = process.env.INTERVAL || '1m'; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
-const LIMIT = process.env.LIMIT || 10; //LIMIT WHEN FETCH THE AGGREGATE TRADES
+const LIMIT = process.env.LIMIT || 20; //LIMIT WHEN FETCH THE AGGREGATE TRADES
 const PERCENTBUY = process.env.PERCENTBUY; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PERCENTSELL = process.env.PERCENTSELL; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PRICELIMIT = process.env.PRICELIMIT; //END POINT OF THE PRICE SET
-const SPREAD = process.env.SPREAD || 1.2;
+const SPREAD = process.env.SPREAD || 1.5;
 const CRYPTO = process.env.CRYPTO || 'SHIB';
 const CRYPTOTRANSACT = process.env.CRYPTO || 'BUSD';
-
+const seAveHighLimit = process.env.SETAVEHIGHLIMIT || false;
 const binance = new Binance().options({
   APIKEY,
   APISECRET,
@@ -56,9 +56,11 @@ const transactBuy = async () => {
   const currPrice = await fetchCurPrice();
 
   //check if the current price is not exceded to the set price limit
-  if (currPrice >= PRICELIMIT) {
-    console.log('UNEABLE TO TRANSACT, PRICELIMIT EXCEDED');
-    return;
+  if (PRICELIMIT) {
+    if (currPrice >= PRICELIMIT) {
+      console.log('UNEABLE TO TRANSACT, PRICELIMIT EXCEDED');
+      return;
+    }
   }
 
   const prevHighPer = await previousHighPercent();
@@ -68,9 +70,11 @@ const transactBuy = async () => {
   const high = await avg(arr, 2);
   const aveHigh = PERCENTSELL || (await ((high / open) * 100 - 100));
 
-  if (prevHighPer > aveHigh) {
-    console.log('AVERAGE HIGH PERCENT IS GREATER THAT PREVIOUS HIGH PERCENT');
-    return;
+  if (seAveHighLimit) {
+    if (prevHighPer > aveHigh) {
+      console.log('AVERAGE HIGH PERCENT IS GREATER THAT PREVIOUS HIGH PERCENT');
+      return;
+    }
   }
 
   //if PERCENTBBUY is not set, the average low percentage will be replace
@@ -170,7 +174,7 @@ const previousHighPercent = async () => {
   const res = await axios.get(kLinesAPI, {
     params: {
       symbol: SYMBOL,
-      interval: '1m',
+      interval: INTERVAL,
       limit: 1
     }
   });
