@@ -9,7 +9,7 @@ const APISECRET = process.env.APISECRET; //API SECRET
 const APIKEY = process.env.APIKEY; //API KEY
 const SYMBOL = process.env.SYMBOL || 'GALABUSD'; //SYMBOL
 const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 100; //PERCENT CAPITAL
-const INTERVAL = process.env.INTERVAL || '1m'; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
+const INTERVAL = process.env.INTERVAL || '15m'; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
 const LIMIT = process.env.LIMIT || 22; //LIMIT WHEN FETCH THE AGGREGATE TRADES
 const PERCENTBUY = process.env.PERCENTBUY; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PERCENTSELL = process.env.PERCENTSELL; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
@@ -145,7 +145,7 @@ const sell = async () => {
           const sell = (((100 + parseFloat(highExec)) * prevBuy) / 100).toFixed(
             5
           );
-          const quantity = Math.round(curBalance);
+          const quantity = Math.floor(curBalance);
           console.log('Previous Transaction :', prevBuy);
           console.log('Price to Sell :', sell);
           console.log(
