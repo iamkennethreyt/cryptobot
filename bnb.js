@@ -27,6 +27,15 @@ const binance = new Binance().options({
 });
 const border =
   '\n=============================================================\n';
+console.log(border);
+console.log('Following Parameters :');
+process.env.PERCENTCAPITAL &&
+  console.log('PERCENTCAPITAL ', process.env.PERCENTCAPITAL);
+process.env.LIMIT && console.log('LIMIT ', process.env.LIMIT);
+process.env.INTERVAL && console.log('INTERVAL ', process.env.INTERVAL);
+process.env.PRICELIMIT && console.log('PRICELIMIT ', process.env.PRICELIMIT);
+process.env.SPREAD && console.log('SPREAD ', process.env.SPREAD);
+console.log(border);
 
 //calculate the average of an array and properties
 const avg = async (arr, prop) =>
@@ -88,10 +97,6 @@ const transactBuy = async () => {
       console.log('Percent Capital :', PERCENTCAPITAL, '%');
       console.log('Capital', capital);
 
-      console.log(border);
-      console.log('Quantity', quantity);
-      console.log('Price to Buy', price);
-
       await binance.buy(
         SYMBOL,
         quantity,
@@ -99,6 +104,9 @@ const transactBuy = async () => {
         { type: 'LIMIT' },
         (err, res) => {
           try {
+            console.log(border);
+            console.log('Quantity', quantity);
+            console.log('Price to Buy', price);
             console.info(
               `Successfully added Buy \nPrice : ${parseFloat(res.price)}`
             );
@@ -134,12 +142,11 @@ const sell = async () => {
           );
           const quantity = parseFloat(curBalance).toFixed(3) - 0.001;
           console.log('Previous Transaction :', prevBuy);
-          console.log('Price to Sell :', sell);
           console.log(
             `Average high in ${LIMIT} per ${INTERVAL.blue} :`,
             aveHigh
           );
-          console.log('Quantity :', quantity);
+
           binance.sell(
             SYMBOL,
             quantity,
@@ -147,6 +154,8 @@ const sell = async () => {
             { type: 'LIMIT' },
             (err, res) => {
               try {
+                console.log('Price to Sell :', sell);
+                console.log('Quantity :', quantity);
                 console.info(
                   `Successfully added Sell \nPrice : ${parseFloat(res.price)}`
                 );
