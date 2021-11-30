@@ -76,7 +76,7 @@ const transactBuy = async () => {
       const currPrice = await fetchCurPrice();
       const curBalance = parseFloat(bal[CRYPTOTRANSACT].available);
 
-      const price = currPrice > low ? low : low - 2;
+      const price = currPrice > low ? low : low - 1;
       const capital = parseFloat(
         (curBalance * (PERCENTCAPITAL / 100)).toFixed(2)
       );
