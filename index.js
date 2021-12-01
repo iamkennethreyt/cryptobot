@@ -5,7 +5,7 @@ const {
   BASEDECIMALPLACES,
   BALANCECIMALPLACES,
   DECIMALPLACES
-} = require('./schema.json')[process.env.SYMBOL || 'BNBBUSD'];
+} = require('./schema.json')[process.env.SYMBOL || 'SHIBBUSD'];
 
 const Binance = require('node-binance-api');
 const axios = require('axios');
@@ -16,12 +16,14 @@ const kLinesAPI = 'https://api3.binance.com/api/v3/klines?';
 const APISECRET = process.env.APISECRET; //API SECRET
 const APIKEY = process.env.APIKEY; //API KEY
 const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 100; //PERCENT CAPITAL
-const INTERVAL = process.env.INTERVAL || '1h'; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
+const INTERVAL = process.env.INTERVAL || '5m'; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
 const LIMIT = process.env.LIMIT || 22; //LIMIT WHEN FETCH THE AGGREGATE TRADES
 const PERCENTBUY = process.env.PERCENTBUY; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PERCENTSELL = process.env.PERCENTSELL; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PRICELIMIT = process.env.PRICELIMIT; //END POINT OF THE PRICE SET
-const SPREAD = process.env.SPREAD || 1;
+const SPREAD = process.env.SPREAD || 1.2;
+const ISBASEDONAVERAGEPERCENTAGE =
+  process.env.ISBASEDONAVERAGEPERCENTAGE || true;
 
 const binance = new Binance().options({
   APIKEY,
@@ -79,10 +81,15 @@ const transactBuy = async () => {
   }
 
   const arr = await fetchAggTrades();
-  const low = parseFloat(await avg(arr, 3));
+  const averageLow = parseFloat(await avg(arr, 3));
+  const averageOpen = parseFloat(await avg(arr, 1));
 
   //if PERCENTBBUY is not set, the average low percentage will be replace
   PERCENTBUY && console.log('PERCENT BUY PARAM EXIST : ', PERCENTBUY);
+
+  const avePercentLow = await parseFloat(
+    (100 - (100 * averageLow) / averageOpen).toFixed(2)
+  );
 
   //check the balance
   binance.balance(async (err, bal) => {
@@ -90,16 +97,27 @@ const transactBuy = async () => {
       const currPrice = await fetchCurPrice();
       const curBalance = parseFloat(bal[QUOTEASSET].available);
 
-      const price = (currPrice > low ? low : currPrice * 0.99).toFixed(
-        BASEDECIMALPLACES
-      );
+      let price;
+      if (ISBASEDONAVERAGEPERCENTAGE) {
+        price =
+          currPrice -
+          ((avePercentLow * currPrice) / 100).toFixed(BASEDECIMALPLACES);
+        console.log('price', price);
+      } else {
+        price = (
+          currPrice > averageLow ? averageLow : currPrice * 0.99
+        ).toFixed(BASEDECIMALPLACES);
+      }
       const capital = curBalance * (PERCENTCAPITAL / 100);
       let quantity =
         Math.floor((capital / price) * DECIMALPLACES) / DECIMALPLACES;
 
       console.log('Current Price :', currPrice);
       console.log('Current Balance :', curBalance);
-      console.log(`Average Low price for ${INTERVAL.blue} :`, low);
+      console.log(
+        `Average Low price for ${INTERVAL.blue} in ${LIMIT} limit:`,
+        averageLow
+      );
       console.log('Percent Capital :', PERCENTCAPITAL, '%');
       console.log('Capital', capital);
 
@@ -131,12 +149,13 @@ const transactBuy = async () => {
 
 const sell = async () => {
   const arr = await fetchAggTrades();
-  const open = await avg(arr, 1);
-  const high = await avg(arr, 2);
+  const averageOpen = await avg(arr, 1);
+  const averageHigh = await avg(arr, 2);
   PERCENTSELL && console.log('PERCENT SELL PARAM EXIST : ', PERCENTSELL);
-  const aveHigh =
-    PERCENTSELL || (await parseFloat(((high / open) * 100 - 100).toFixed(2)));
-  const highExec = SPREAD * aveHigh;
+  const avePercentHigh =
+    PERCENTSELL ||
+    (await parseFloat(((averageHigh / averageOpen) * 100 - 100).toFixed(2)));
+  const highExec = SPREAD * avePercentHigh;
   binance.balance(async (err, bal) => {
     try {
       await binance.trades(SYMBOL, (err, prevTransact) => {
@@ -152,7 +171,7 @@ const sell = async () => {
           console.log('Previous Transaction :', prevBuy);
           console.log(
             `Average high in ${LIMIT} per ${INTERVAL.blue} :`,
-            aveHigh
+            avePercentHigh
           );
 
           binance.sell(
