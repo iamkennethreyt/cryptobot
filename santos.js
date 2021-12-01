@@ -1,7 +1,11 @@
 const Binance = require('node-binance-api');
 const APISECRET = process.env.APISECRET; //API SECRET
 const APIKEY = process.env.APIKEY; //API KEY
-const SYMBOL = 'SANTOSBUSD';
+const SYMBOL = process.env.SYMBOL || 'SANTOSBUSD';
+const loop = process.env.LOOP || 2400;
+const quantity = process.env.QUANTITY || 45;
+const milisecond = process.env.MILISECONDS || 50;
+const price = process.env.PRICE || 5;
 
 const binance = new Binance().options({
   APIKEY,
@@ -10,11 +14,6 @@ const binance = new Binance().options({
   recvWindow: 6000,
   verbose: true
 });
-
-const loop = 12000;
-const quantity = 45;
-const milisecond = 100;
-const price = 5;
 
 const buy = () => {
   binance.useServerTime();
