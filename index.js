@@ -90,14 +90,12 @@ const transactBuy = async () => {
       const currPrice = await fetchCurPrice();
       const curBalance = parseFloat(bal[QUOTEASSET].available);
 
-      const price = currPrice > low ? low : currPrice - 2;
-      const capital = parseFloat(
-        (curBalance * (PERCENTCAPITAL / 100)).toFixed(2)
+      const price = (currPrice > low ? low : currPrice * 0.99).toFixed(
+        BASEDECIMALPLACES
       );
+      const capital = curBalance * (PERCENTCAPITAL / 100);
       let quantity =
         Math.floor((capital / price) * DECIMALPLACES) / DECIMALPLACES;
-      console.log(capital, 'capital');
-      console.log(price, 'price');
 
       console.log('Current Price :', currPrice);
       console.log('Current Balance :', curBalance);
