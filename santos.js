@@ -7,13 +7,13 @@ const binance = new Binance().options({
   APIKEY,
   APISECRET,
   useServerTime: true,
-  recvWindow: 60000,
+  recvWindow: 6000,
   verbose: true
 });
 
 const loop = 12000;
 const quantity = 45;
-const milisecond = 10;
+const milisecond = 100;
 const price = 5;
 
 const buy = () => {
