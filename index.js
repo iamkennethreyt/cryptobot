@@ -5,7 +5,7 @@ const {
   BASEDECIMALPLACES,
   BALANCECIMALPLACES,
   DECIMALPLACES
-} = require('./variables.json')['BNBBUSD'];
+} = require('./schema.json')[process.env.SYMBOL || 'BNBBUSD'];
 
 const Binance = require('node-binance-api');
 const axios = require('axios');
@@ -21,7 +21,7 @@ const LIMIT = process.env.LIMIT || 22; //LIMIT WHEN FETCH THE AGGREGATE TRADES
 const PERCENTBUY = process.env.PERCENTBUY; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PERCENTSELL = process.env.PERCENTSELL; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PRICELIMIT = process.env.PRICELIMIT; //END POINT OF THE PRICE SET
-const SPREAD = process.env.SPREAD || 1.2;
+const SPREAD = process.env.SPREAD || 1;
 
 const binance = new Binance().options({
   APIKEY,
