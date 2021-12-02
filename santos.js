@@ -1,11 +1,11 @@
 const Binance = require('node-binance-api');
 const APISECRET = process.env.APISECRET; //API SECRET
 const APIKEY = process.env.APIKEY; //API KEY
-const SYMBOL = process.env.SYMBOL || 'SANTOSUSDT';
-const loop = process.env.LOOP || 1200;
-const quantity = process.env.QUANTITY || 45;
+const SYMBOL = process.env.SYMBOL || 'MCBUSD';
+const loop = process.env.LOOP || 300;
+const quantity = process.env.QUANTITY || 15;
 const milisecond = process.env.MILISECONDS || 100;
-const price = process.env.PRICE || 5;
+const price = process.env.PRICE || 12;
 
 const binance = new Binance().options({
   APIKEY,
@@ -31,8 +31,8 @@ const buy = () => {
 };
 
 const sell = () => {
-  const sellQty = 45; //40 SANTOS available balance
-  const sellPrice = 20; //10 SANTOS
+  const sellQty = 15; //40 SANTOS available balance
+  const sellPrice = 15; //10 SANTOS
 
   binance.sell(SYMBOL, sellQty, sellPrice, (err, res) => {
     if (err) {

@@ -5,7 +5,7 @@ const {
   BASEDECIMALPLACES,
   BALANCECIMALPLACES,
   DECIMALPLACES
-} = require('./schema.json')[process.env.SYMBOL || 'SHIBBUSD'];
+} = require('./schema.json')[process.env.SYMBOL || 'BNBBUSD'];
 
 const Binance = require('node-binance-api');
 const axios = require('axios');
@@ -16,14 +16,14 @@ const kLinesAPI = 'https://api3.binance.com/api/v3/klines?';
 const APISECRET = process.env.APISECRET; //API SECRET
 const APIKEY = process.env.APIKEY; //API KEY
 const PERCENTCAPITAL = process.env.PERCENTCAPITAL || 100; //PERCENT CAPITAL
-const INTERVAL = process.env.INTERVAL || '5m'; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
+const INTERVAL = process.env.INTERVAL || '4h'; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
 const LIMIT = process.env.LIMIT || 22; //LIMIT WHEN FETCH THE AGGREGATE TRADES
 const PERCENTBUY = process.env.PERCENTBUY; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PERCENTSELL = process.env.PERCENTSELL; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PRICELIMIT = process.env.PRICELIMIT; //END POINT OF THE PRICE SET
-const SPREAD = process.env.SPREAD || 1.2;
+const SPREAD = process.env.SPREAD || 1.5;
 const ISBASEDONAVERAGEPERCENTAGE =
-  process.env.ISBASEDONAVERAGEPERCENTAGE || true;
+  process.env.ISBASEDONAVERAGEPERCENTAGE || false;
 
 const binance = new Binance().options({
   APIKEY,
@@ -99,9 +99,9 @@ const transactBuy = async () => {
 
       let price;
       if (ISBASEDONAVERAGEPERCENTAGE) {
-        price =
-          currPrice -
-          ((avePercentLow * currPrice) / 100).toFixed(BASEDECIMALPLACES);
+        price = (currPrice - (avePercentLow * currPrice) / 100).toFixed(
+          BASEDECIMALPLACES
+        );
         console.log('price', price);
       } else {
         price = (
