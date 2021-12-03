@@ -1,11 +1,11 @@
 const Binance = require('node-binance-api');
 const APISECRET = process.env.APISECRET; //API SECRET
 const APIKEY = process.env.APIKEY; //API KEY
-const SYMBOL = process.env.SYMBOL || 'MCBUSD';
+const SYMBOL = process.env.SYMBOL || 'COCOSBUSD';
 const loop = process.env.LOOP || 300;
-const quantity = process.env.QUANTITY || 15;
+const quantity = process.env.QUANTITY || 54;
 const milisecond = process.env.MILISECONDS || 100;
-const price = process.env.PRICE || 12;
+const price = process.env.PRICE || 3.2;
 
 const binance = new Binance().options({
   APIKEY,
