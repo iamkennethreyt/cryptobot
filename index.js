@@ -148,23 +148,6 @@ const transactBuy = async () => {
   });
 };
 
-const cancelPrevOrder = async () => {
-  await binance.openOrders(false, async (err, oo) => {
-    const prevBuy = await oo.filter((x) => x.side === "BUY");
-    if (prevBuy.length === 0) {
-      return;
-    }
-    // console.log(prevBuy[0].orderId);
-    binance.cancel(SYMBOL, prevBuy[0].orderId, (error, response, symbol) => {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log("Previous order cancelled!");
-      }
-    });
-  });
-};
-
 const transactSell = async () => {
   const arr = await fetchAggTrades();
   const averageOpen = await avg(arr, 1);
@@ -230,10 +213,9 @@ const transactSell = async () => {
 const transact = async () => {
   await binance.useServerTime();
 
-  cancelPrevOrder();
-
   //check the open orders first
   await binance.openOrders(false, (err, openOrders) => {
+    const prevT = openOrders[openOrders.length - 1];
     try {
       if (openOrders.length === 0) {
         binance.trades(SYMBOL, (err, res) => {
@@ -252,29 +234,17 @@ const transact = async () => {
           }
         });
       } else {
-        if (openOrders[0].side === "SELL") {
-          // console.log(
-          //   border,
-          //   "PENDING TRANSACTION IS SELL, no trade available",
-          //   border
-          // );
-          console.log(border, "Transact again!", border);
-          transactBuy();
-          transactSell();
-          return;
-        } else {
-          console.log(border, "CANCEL ORDER", border);
-          binance.cancelAll(SYMBOL, (err, res) => {
-            try {
-              console.info("Successfully cancel trade");
-              console.info(`Previous trade [${res[0].side}]`.blue);
-              transactBuy();
-            } catch (error) {
-              throw err;
+        if (prevT.side === "BUY") {
+          binance.cancel(SYMBOL, prevT.orderId, (err) => {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log("Previous order cancelled!");
             }
           });
-          console.log(border, "BUY NEW", border);
         }
+        transactBuy();
+        transactSell();
       }
     } catch (error) {
       throw err;
