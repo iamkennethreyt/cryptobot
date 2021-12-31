@@ -216,6 +216,7 @@ const transact = async () => {
   //check the open orders first
   await binance.openOrders(false, (err, openOrders) => {
     const prevT = openOrders[openOrders.length - 1];
+    console.log(prevT);
     try {
       if (openOrders.length === 0) {
         binance.trades(SYMBOL, (err, res) => {
