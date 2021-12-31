@@ -149,8 +149,8 @@ const transactBuy = async () => {
 };
 
 const cancelPrevOrder = async () => {
-  await binance.openOrders(false, (err, oo) => {
-    const prevBuy = oo.filter((x) => x.side === "BUY");
+  await binance.openOrders(false, async (err, oo) => {
+    const prevBuy = await oo.filter((x) => x.side === "BUY");
     if (prevBuy.length === 0) {
       return;
     }
