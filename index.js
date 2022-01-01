@@ -214,7 +214,7 @@ const transact = async () => {
   await binance.useServerTime();
 
   //check the open orders first
-  await binance.openOrders(false, (err, openOrders) => {
+  await binance.openOrders(SYMBOL, (err, openOrders) => {
     const prevT = openOrders[openOrders.length - 1];
     try {
       if (openOrders.length === 0) {
