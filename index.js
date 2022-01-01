@@ -235,7 +235,6 @@ const transact = async () => {
         });
       } else {
         if (prevT.side === "BUY") {
-          console.log(prevT, border, border);
           binance.cancel(SYMBOL, prevT.orderId, (err) => {
             if (err) {
               console.log(err);
