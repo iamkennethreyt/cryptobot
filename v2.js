@@ -1,6 +1,11 @@
-const APIKEY = process.env.APIKEY; //API KEY
-const APISECRET = process.env.APISECRET; //API SECRET
-const XAPIKEY = process.env.XAPIKEY; // API KEY FOR coinwatch;
+const {
+  SYMBOL,
+  BASEASSET,
+  QUOTEASSET,
+  BASEDECIMALPLACES,
+  BALANCECIMALPLACES,
+  DECIMALPLACES,
+} = require("./schema.json")[process.env.SYMBOL || "BNBBUSD"];
 
 const Binance = require("node-binance-api");
 const axios = require("axios");
@@ -8,13 +13,14 @@ const colors = require("colors");
 const lodash = require("lodash");
 const baseUrl = "https://api.binance.com/api/v3/ticker/price";
 const kLinesAPI = "https://api3.binance.com/api/v3/klines?";
-const exchangeInfoURL = "https://api.binance.com/api/v1/exchangeInfo";
-const coinSingle = "https://api.livecoinwatch.com/coins/single";
 
-const SYMBOL = process.env.SYMBOL || "BNBBUSD";
-const CAPITAL = process.env.CAPITAL || 1300; // CAPITAL
+const APIKEY = process.env.APIKEY; //API KEY
+const APISECRET = process.env.APISECRET; //API SECRET
+
+const CAPITAL = process.env.CAPITAL || 50; // CAPITAL
 const INTERVAL = process.env.INTERVAL || "4h"; //INTERVAL WHEN FETCH THE AGGREGATE TRADES
 const LIMIT = process.env.LIMIT || 48; //LIMIT WHEN FETCH THE AGGREGATE TRADES
+const PERCENTBUY = process.env.PERCENTBUY; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const PERCENTSELL = process.env.PERCENTSELL; //IF NOT SET, THE AVERAGE OF THE PREVEIOS AGGREGATE TRADES
 const SPREAD = process.env.SPREAD || 1.0;
 const ISBASEDONAVERAGEPERCENTAGE =
@@ -31,35 +37,32 @@ const border =
   "\n=============================================================\n";
 console.log(border);
 console.log("Following Parameters :");
+process.env.CAPITAL && console.log("CAPITAL ", process.env.CAPITAL);
 process.env.LIMIT && console.log("LIMIT ", process.env.LIMIT);
 process.env.INTERVAL && console.log("INTERVAL ", process.env.INTERVAL);
 process.env.SPREAD && console.log("SPREAD ", process.env.SPREAD);
 console.log(border);
 
-//count decimal places
-const countDecimalPlaces = (number) =>
-  (+number).toFixed(10).replace(/^-?\d*\.?|0+$/g, "").length;
+//calculate the average of an array and properties
+const avg = async (arr, prop) =>
+  (
+    (await arr.reduce((r, c) => r + parseFloat(c[prop]), 0)) / arr.length
+  ).toFixed(BASEDECIMALPLACES);
 
 //fetch current price
-const fetchCurPrice = async (symbol) => {
+const fetchCurPrice = async () => {
   const res = await axios.get(`${baseUrl}`, {
-    params: { symbol },
+    params: { symbol: SYMBOL },
   });
 
   return parseFloat(res.data.price);
 };
 
-//fetch exchange info
-const exhangeInfo = async () => {
-  const res = await axios.get(exchangeInfoURL);
-  return res.data;
-};
-
 //fetch the aggregate trades
-const fetchAggTrades = async (symbol) => {
+const fetchAggTrades = async () => {
   const res = await axios.get(kLinesAPI, {
     params: {
-      symbol,
+      symbol: SYMBOL,
       interval: INTERVAL,
       limit: LIMIT,
     },
@@ -67,35 +70,10 @@ const fetchAggTrades = async (symbol) => {
   return res.data;
 };
 
-//convert capital
-const coinSingleInfo = async (quoteAsset) => {
-  const res = await axios.post(
-    coinSingle,
-    {
-      currency: "PHP",
-      code: quoteAsset,
-      meta: true,
-    },
-    {
-      headers: {
-        "x-api-key": XAPIKEY,
-        "Content-Type": "application/json",
-      },
-    }
-  );
-  return CAPITAL / res.data.rate;
-};
+const transactBuy = async () => {
+  const currPrice = await fetchCurPrice();
 
-const transactBuy = async ({ symbol, quoteAsset, minPrice, stepSize }) => {
-  const currPrice = await fetchCurPrice(symbol);
-
-  const arr = await fetchAggTrades(symbol);
-
-  //calculate the average of an array and properties
-  const avg = async (arr, prop) =>
-    (
-      (await arr.reduce((r, c) => r + parseFloat(c[prop]), 0)) / arr.length
-    ).toFixed(minPrice);
+  const arr = await fetchAggTrades();
 
   const highValue = parseInt(lodash.maxBy(arr, (x) => x[2])[2]);
 
@@ -108,6 +86,9 @@ const transactBuy = async ({ symbol, quoteAsset, minPrice, stepSize }) => {
   const averageLow = parseFloat(await avg(arr, 3));
   const averageOpen = parseFloat(await avg(arr, 1));
 
+  //if PERCENTBBUY is not set, the average low percentage will be replace
+  PERCENTBUY && console.log("PERCENT BUY PARAM EXIST : ", PERCENTBUY);
+
   const avePercentLow = await parseFloat(
     (100 - (100 * averageLow) / averageOpen).toFixed(2)
   );
@@ -115,21 +96,23 @@ const transactBuy = async ({ symbol, quoteAsset, minPrice, stepSize }) => {
   //check the balance
   binance.balance(async (err, bal) => {
     try {
-      const curBalance = parseFloat(bal[quoteAsset].available);
+      const currPrice = await fetchCurPrice();
+      const curBalance = parseFloat(bal[QUOTEASSET].available);
 
       let price;
       if (ISBASEDONAVERAGEPERCENTAGE) {
         price = (currPrice - (avePercentLow * currPrice) / 100).toFixed(
-          minPrice
+          BASEDECIMALPLACES
         );
         console.log("price", price);
       } else {
         price = (
           currPrice > averageLow ? averageLow : currPrice * 0.99
-        ).toFixed(minPrice);
+        ).toFixed(BASEDECIMALPLACES);
       }
-      const capital = await coinSingleInfo(quoteAsset);
-      let quantity = Math.floor((capital / price) * stepSize) / stepSize;
+      const capital = CAPITAL;
+      let quantity =
+        Math.floor((capital / price) * DECIMALPLACES) / DECIMALPLACES;
 
       console.log("Current Price :", currPrice);
       console.log("Current Balance :", curBalance);
@@ -140,7 +123,7 @@ const transactBuy = async ({ symbol, quoteAsset, minPrice, stepSize }) => {
       console.log("Capital :", CAPITAL);
 
       await binance.buy(
-        symbol,
+        SYMBOL,
         quantity,
         price,
         { type: "LIMIT" },
@@ -165,14 +148,8 @@ const transactBuy = async ({ symbol, quoteAsset, minPrice, stepSize }) => {
   });
 };
 
-const transactSell = async ({ symbol, baseAsset, minPrice, stepSize }) => {
-  const arr = await fetchAggTrades(symbol);
-
-  const avg = (arr, prop) =>
-    (arr.reduce((r, c) => r + parseFloat(c[prop]), 0) / arr.length).toFixed(
-      minPrice
-    );
-
+const transactSell = async () => {
+  const arr = await fetchAggTrades();
   const averageOpen = await avg(arr, 1);
   const averageHigh = await avg(arr, 2);
   PERCENTSELL && console.log("PERCENT SELL PARAM EXIST : ", PERCENTSELL);
@@ -182,18 +159,21 @@ const transactSell = async ({ symbol, baseAsset, minPrice, stepSize }) => {
   const highExec = SPREAD * avePercentHigh;
   binance.balance(async (err, bal) => {
     try {
-      await binance.trades(symbol, (err, prevTransact) => {
+      await binance.trades(SYMBOL, (err, prevTransact) => {
         if (!err) {
           const prevBuy = parseFloat(
             prevTransact.filter((x) => x.isBuyer).slice(-1)[0].price
           );
           console.log("prevBuy", prevBuy);
-          const curBalance = bal[baseAsset].available;
+          const curBalance = bal[BASEASSET].available;
           const sell = (((100 + parseFloat(highExec)) * prevBuy) / 100).toFixed(
-            minPrice
+            BASEDECIMALPLACES
           );
-          console.log("Current Balance :", parseFloat(curBalance));
-          let quantity = Math.floor(curBalance * stepSize) / stepSize;
+          console.log(
+            "Current Balance :",
+            parseFloat(curBalance).toFixed(BALANCECIMALPLACES)
+          );
+          let quantity = Math.floor(curBalance * DECIMALPLACES) / DECIMALPLACES;
 
           console.log("Previous Transaction :", prevBuy);
           console.log(
@@ -202,7 +182,7 @@ const transactSell = async ({ symbol, baseAsset, minPrice, stepSize }) => {
           );
 
           binance.sell(
-            symbol,
+            SYMBOL,
             quantity,
             sell,
             { type: "LIMIT" },
@@ -233,62 +213,43 @@ const transactSell = async ({ symbol, baseAsset, minPrice, stepSize }) => {
 const transact = async () => {
   await binance.useServerTime();
 
-  const marketPair = await exhangeInfo();
-  const objs = await marketPair.symbols.find((x) => x.symbol === SYMBOL);
-  if (objs !== undefined) {
-    const paramsObject = {
-      symbol: objs.symbol,
-      baseAsset: objs.baseAsset,
-      quoteAsset: objs.quoteAsset,
-      minPrice: countDecimalPlaces(
-        parseFloat(
-          objs.filters.find((x) => x.filterType === "PRICE_FILTER").minPrice
-        )
-      ),
-      stepSize:
-        1 / objs.filters.find((x) => x.filterType === "LOT_SIZE").stepSize,
-    };
-
-    //check the open orders first
-    await binance.openOrders(paramsObject.symbol, (err, openOrders) => {
-      const prevT = openOrders[openOrders.length - 1];
-      try {
-        if (openOrders.length === 0) {
-          binance.trades(paramsObject.symbol, (err, res) => {
-            try {
-              if (res.slice(-1)[0].isBuyer) {
-                console.log(border, "SELL", border);
-                transactSell(paramsObject);
-                return;
-              } else {
-                console.log(border, "BUY", border);
-                transactBuy(paramsObject);
-                return;
-              }
-            } catch (error) {
-              throw err;
+  //check the open orders first
+  await binance.openOrders(SYMBOL, (err, openOrders) => {
+    const prevT = openOrders[openOrders.length - 1];
+    try {
+      if (openOrders.length === 0) {
+        binance.trades(SYMBOL, (err, res) => {
+          try {
+            if (res.slice(-1)[0].isBuyer) {
+              console.log(border, "SELL", border);
+              transactSell();
+              return;
+            } else {
+              console.log(border, "BUY", border);
+              transactBuy();
+              return;
+            }
+          } catch (error) {
+            throw err;
+          }
+        });
+      } else {
+        if (prevT.side === "BUY") {
+          binance.cancel(SYMBOL, prevT.orderId, (err) => {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log("Previous order cancelled!");
             }
           });
-        } else {
-          if (prevT.side === "BUY") {
-            binance.cancel(paramsObject.symbol, prevT.orderId, (err) => {
-              if (err) {
-                console.log(err);
-              } else {
-                console.log("Previous order cancelled!");
-              }
-            });
-          }
-          transactBuy(paramsObject);
-          transactSell(paramsObject);
         }
-      } catch (error) {
-        throw err;
+        transactBuy();
+        transactSell();
       }
-    });
-  } else {
-    console.log("Undefined Symbol!");
-  }
+    } catch (error) {
+      throw err;
+    }
+  });
 };
 
 transact();
