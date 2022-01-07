@@ -97,7 +97,7 @@ const transactBuy = async ({ symbol, quoteAsset, minPrice, stepSize }) => {
       (await arr.reduce((r, c) => r + parseFloat(c[prop]), 0)) / arr.length
     ).toFixed(minPrice);
 
-  const highValue = parseInt(lodash.maxBy(arr, (x) => x[2])[2]);
+  const highValue = parseFloat(lodash.maxBy(arr, (x) => x[2])[2]);
 
   //check if the current price is not exceded to the set price limit
   if (currPrice >= highValue) {
